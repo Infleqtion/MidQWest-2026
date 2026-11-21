@@ -18,6 +18,7 @@ from circuit import (
 )
 from decoders import bposd_decoder, per_cycle_rate, score
 from make_circuit import CODES, memory_experiment
+from sqale_data.summary import load_counts, loss_summary
 
 # code: (qubits, logical qubits)
 SIZES = {"gross": (288, 12), "bb108": (216, 8), "bb90": (180, 8), "bb72": (144, 12)}
@@ -102,3 +103,11 @@ def test_per_cycle_rate():
     assert per_cycle_rate(half_failed, cycles=2)[0] == pytest.approx(1 - 0.5 ** 0.5)
     rate, error = per_cycle_rate(np.zeros(10, bool), cycles=12)
     assert rate == 0 and error == 0
+
+
+def test_sqale_counts_load():
+    experiments = load_counts()
+    shots, atoms, with_loss, per_atom = loss_summary(experiments["shor_2row"])
+    assert len(experiments) == 24
+    assert (shots, atoms, len(per_atom)) == (5275, 20, 20)
+    assert 0 < with_loss < 1

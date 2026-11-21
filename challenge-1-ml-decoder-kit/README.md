@@ -4,9 +4,11 @@
 |------|--------------|
 | `circuits/` | the X and Z memory circuits of the Gross code and their schedule |
 | `baseline.py` | step 1: run BP-OSD and relay-BP |
+| `tcbp_jobs.py` | step 1: run NVIDIA's TCBP-JOBS decoder on the same shots (needs an NVIDIA GPU) |
 | `make_dataset.py` | step 2: save training and test data |
 | `circuit.py`, `decoders.py` | the functions behind the two steps |
 | `make_circuit.py` | generate the circuits, other codes and round counts |
+| `sqale_data/` | measured counts from Infleqtion's Sqale processor |
 | `test_kit.py` | tests |
 
 ## Setup
@@ -54,6 +56,19 @@ relay-bp   failures [45 60] of 10000  per cycle 8.71e-04 +- 8.5e-05  mean 378.7 
 Run it at p = 0.003, 0.004 and 0.005. The shots are spread over worker processes
 (`--workers`, default: half the cores). The time covers one X shot and one Z shot.
 
+TCBP-JOBS, NVIDIA's GPU decoder (arXiv:2611.21321), runs on the same shots. It needs an
+NVIDIA GPU.
+
+```bash
+pip install cudaq-qec==0.9.0
+python tcbp_jobs.py --p 0.004 --shots 10000
+```
+
+```
+10000 shots at p=0.004, 12 cycles, failures listed as [X Z]
+tcbp-jobs  failures [19 21] of 10000  per cycle 3.34e-04 +- 5.3e-05  mean 3.9 ms  p99 17 ms
+```
+
 The circuits and the decoder settings are those of the relay-BP authors' published results
 (https://github.com/trmue/relay, `examples/data`). The settings are at the top of
 `decoders.py`. Reference results with 10,000 shots per basis, next to the authors' counts:
@@ -62,14 +77,19 @@ The circuits and the decoder settings are those of the relay-BP authors' publish
 |---|---------|---------------|----------------|--------------------------------|---------------|-----------|-------------------|
 | 0.003 | BP-OSD | 26, 30 | 4.7e-4 +- 0.6e-4 | 282, 316 (100,000) | 5.0e-4 | 0.14 s | 6 min |
 | 0.003 | relay-BP | 3, 2 | 4.2e-5 +- 1.9e-5 | 32, 40 (100,000) | 6.0e-5 | 0.10 s | |
+| 0.003 | TCBP-JOBS | 1, 3 | 3.3e-5 +- 1.7e-5 | | | 2.2 ms (GPU) | |
 | 0.004 | BP-OSD | 253, 269 | 4.4e-3 +- 0.2e-3 | 244, 265 (10,000) | 4.3e-3 | 0.33 s | 17 min |
 | 0.004 | relay-BP | 45, 60 | 8.7e-4 +- 0.9e-4 | 53, 44 (10,000) | 8.1e-4 | 0.38 s | |
+| 0.004 | TCBP-JOBS | 19, 21 | 3.3e-4 +- 0.5e-4 | | | 3.9 ms (GPU) | |
 | 0.005 | BP-OSD | 1302, 1286 | 2.3e-2 +- 0.05e-2 | 660, 651 (5,000) | 2.3e-2 | 0.59 s | 58 min |
 | 0.005 | relay-BP | 411, 414 | 6.9e-3 +- 0.2e-3 | 216, 205 (5,000) | 7.1e-3 | 1.7 s | |
+| 0.005 | TCBP-JOBS | 174, 180 | 3.0e-3 +- 0.2e-3 | | | 7.8 ms (GPU) | |
 
 - Your counts will differ from ours within the statistical error.
 - Relay-BP at p = 0.003 fails on a handful of shots in 10,000. Our run with 100,000 shots
   per basis gave 43 and 54 failures, a rate of 8.0e-5 +- 0.8e-5.
+- TCBP-JOBS ranks the error mechanisms with a small neural network that reads the BP
+  messages.
 
 ## Step 2: make training and test data
 
@@ -116,6 +136,16 @@ python baseline.py --circuits bb72_X.stim bb72_Z.stim --cycles 6 --p 0.004
 
 The scripts expect the kit's convention: detector coordinate 0 for X checks and 1 for
 Z checks.
+
+## Measured data from Sqale
+
+`sqale_data/` holds measurement outcomes of Infleqtion's Sqale processor, published with
+arXiv:2509.13247. An outcome marks every atom as 0, 1 or lost. `sqale_data/README.md`
+describes the files.
+
+```bash
+python sqale_data/summary.py
+```
 
 ## Tests
 
